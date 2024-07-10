@@ -1,5 +1,6 @@
 package com.example.orderservice.service;
 
+import com.example.orderservice.client.InventoryClient;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.model.Order;
 import com.example.orderservice.repository.OrderRepository;
@@ -14,12 +15,20 @@ import java.util.UUID;
 @Transactional
 public class OrderService {
 
+    private final InventoryClient inventoryClient;
     private final OrderRepository orderRepository;
 
     public void placeOrder(final OrderRequest orderRequest) {
-        final Order order = mapToOrder(orderRequest);
+        final boolean isInStock = inventoryClient.isInStock(orderRequest.skuCode(), orderRequest.quantity());
 
-        orderRepository.save(order);
+        if (isInStock) {
+            final Order order = mapToOrder(orderRequest);
+
+            orderRepository.save(order);
+        } else {
+            throw new RuntimeException("Product with sku code " + orderRequest.skuCode() + " is out of stock");
+        }
+
     }
 
     private static Order mapToOrder(final OrderRequest orderRequest) {
